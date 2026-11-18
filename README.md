@@ -12,7 +12,7 @@ These pages are published to [tuxblox.net/docs](https://tuxblox.net/docs).
 |---|---|
 | [Welcome](getting-started/welcome.md) | What TuxBlox is and where to start |
 | [System Requirements](getting-started/system-requirements.md) | Whether your computer can run it |
-| [Installing TuxBlox](getting-started/installing-tuxblox.md) | Two ways to install, and how to remove it |
+| [Installing TuxBlox](getting-started/installing-tuxblox.md) | How to install and uninstall TuxBlox |
 | [Your First Launch](getting-started/first-launch.md) | What to expect the first time |
 | [How TuxBlox Works](getting-started/how-it-works.md) | The machinery, explained plainly |
 | [Frequently Asked Questions](getting-started/faq.md) | The questions we get most |
@@ -22,7 +22,7 @@ These pages are published to [tuxblox.net/docs](https://tuxblox.net/docs).
 
 | Page | What it covers |
 |---|---|
-| [The Launcher](using-tuxblox/the-launcher.md) | The window and its five tabs |
+| [The Launcher](using-tuxblox/the-launcher.md) | The TuxBlox launcher |
 | [Settings](using-tuxblox/settings/launcher.md) | Every setting and what it does, a page per group: launcher, updates, environment, controller, troubleshooting, privacy, danger zone |
 | [FastFlags](using-tuxblox/fastflags.md) | Roblox's internal settings, and the risks |
 | [Versions](using-tuxblox/versions.md) | Installing and pinning Roblox builds |
@@ -56,10 +56,18 @@ These pages are published to [tuxblox.net/docs](https://tuxblox.net/docs).
 | [Repository Structure](development/repository-structure.md) | What lives where, and the license split |
 | [Contributing](development/contributing.md) | How to get a change merged |
 
-## Something missing or wrong?
+## Found a mistake or want to help?
 
-Documentation bugs are bugs. Open an issue to report bugs.
+If something is wrong, missing, or unclear (typos, broken links, outdated info), [open an issue](https://github.com/tuxblox/documentation/issues). To fix it yourself, open a pull request.
+
+## Want to contribute to the documentation?
+
+Open a PR to add, change, or improve documentation.
 
 ## Editing these pages
 
 `docs-info.json` decides the order and the titles shown in the sidebar on the website. Adding a page means adding it there too, or it will not appear.
+
+## Legal
+
+Documentation is licensed under [CC BY 4.0](LICENSE).
