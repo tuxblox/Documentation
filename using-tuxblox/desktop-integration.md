@@ -1,0 +1,114 @@
+# Desktop Integration
+
+TuxBlox wires itself into your desktop so Roblox behaves like any other application: it shows up in your applications menu, `roblox:` links open in it, and double clicking a place file opens Studio.
+
+All of this is set up for you during install and kept up to date every time the launcher starts. You should not need to do anything on this page.
+
+## What appears in your applications menu
+
+| Entry | When it appears |
+|---|---|
+| **TuxBlox** | Immediately after install |
+| **Roblox Studio** (via TuxBlox) | As soon as Studio is installed |
+| **Roblox Player** (via TuxBlox) | As soon as Player is installed |
+
+TuxBlox creates the Roblox entries itself as soon as Roblox is installed, so they are ready the first time you want to pin one to a taskbar or dock. Where Roblox has also left its own Start Menu shortcuts inside the virtual drive, TuxBlox reads those and republishes them instead, so the entries carry Roblox's own icons and names.
+
+### The icon on your desktop
+
+The first time a Roblox program is installed, TuxBlox also puts an icon for it on your desktop. It opens whichever version you have at the time, so it keeps working after Roblox updates.
+
+It is put there **once**. Updating TuxBlox does not bring it back, so if you delete it, it stays deleted. The exception is Roblox writing itself a new desktop shortcut, which is a fresh request for an icon and is translated as described below. It is also kept out of your applications menu and search, because the entry described above already covers those and you would otherwise be offered the same program twice.
+
+Removing TuxBlox takes these icons away again. It only removes the ones it wrote: an icon you made yourself is left alone, even if it has the same name.
+
+### Shortcuts Roblox puts there itself
+
+Roblox creates a Windows shortcut for itself on the desktop, which arrives as a `.lnk` file your desktop cannot open. TuxBlox turns it into the icon described above and removes the shortcut file, so what you are left with is one icon that works rather than two files, one of which does nothing.
+
+The shortcut file comes off your desktop as soon as Roblox writes it, and the icon replacing it appears the next time the launcher opens or a session ends, so for the rest of that session the desktop simply has neither. A shortcut to anything other than Roblox Player or Studio is left exactly where it is. Set [`tbxFlagTranslateWindowsShortcuts`](../advanced/tuxblox-flags/launcher.md) to `false` to leave all of them alone.
+
+Either way the entries are routed back through the launcher rather than at a fixed location, which is what lets them keep working after Roblox updates itself — they always start whichever version you have installed.
+
+The **TuxBlox** entry also has a right click action for opening this documentation.
+
+## Links that open in TuxBlox
+
+TuxBlox claims these URL schemes:
+
+| Scheme | Opens |
+|---|---|
+| `roblox:` | Roblox Player |
+| `roblox-player:` | Roblox Player |
+| `roblox-studio:` | Roblox Studio |
+| `roblox-studio-auth:` | Roblox Studio, for signing in from the website |
+
+This is what makes the **Play** button on the Roblox website, and the **Edit in Studio** button on the Creator Hub, work from your browser.
+
+When one of these links is opened, TuxBlox starts the right application directly. The launcher window does not appear.
+
+> [!NOTE]
+> Firefox keeps its own separate list of protocol handlers. If Firefox keeps asking you what to open `roblox:` links with, or picks the wrong thing, that is Firefox's list rather than your desktop's. Firefox has to be closed to edit it, from Settings, then General, then Applications.
+
+## Place and model files
+
+These are registered to open in Roblox Studio:
+
+| Extension | What it is |
+|---|---|
+| `.rbxl` | A place |
+| `.rbxlx` | A place, saved as XML |
+| `.rbxm` | A model |
+| `.rbxmx` | A model, saved as XML |
+
+Double clicking one in your file manager opens Studio with it loaded, wherever the file happens to be on your disk. You do not have to move it into the virtual drive first, TuxBlox makes it reachable from inside.
+
+## TuxBlox does not take file types from other programs
+
+If you already have something else set to open Roblox files or `roblox:` links, that stays. TuxBlox checks what each one is set to before changing anything, and claims only the ones nothing else has taken.
+
+There is one exception, which is not silent: an association still pointing at a program you have since removed opens nothing at all, so TuxBlox treats that as free and claims it.
+
+Updating TuxBlox does not change any of this either. It used to set TuxBlox back as the default for its own links on every install and every update, which quietly undid a choice you had made. It no longer does.
+
+## Links are claimed only once Roblox is installed
+
+TuxBlox asks for a link type only when the Roblox app that opens it is actually in the virtual drive:
+
+| What you have installed | What TuxBlox asks for |
+|---|---|
+| Nothing yet | Nothing |
+| Roblox Player | `roblox:` and `roblox-player:` |
+| Roblox Studio | `roblox-studio:`, `roblox-studio-auth:` and the place and model file types |
+
+A link type whose app is not installed would open nothing, so claiming it would take the association for no benefit. A fresh install that has not downloaded Roblox yet leaves your `roblox:` links exactly where they were already going.
+
+To hand a file type to another program, set it there, or in your desktop's default applications settings. The launcher will not take it back.
+
+## Where all this is written
+
+Standard XDG locations in your home folder, nothing system wide:
+
+| Path | What is there |
+|---|---|
+| `~/.local/share/applications/` | The `.desktop` entries |
+| `~/.local/share/icons/hicolor/` | The TuxBlox and Roblox icons |
+| `~/.local/share/mime/packages/` | The place and model file type definitions |
+
+Uninstalling TuxBlox removes all of them.
+
+## If the icons or entries are missing
+
+Start the launcher once and let it sit for a few seconds. It rewrites every entry on startup and refreshes your desktop's icon and MIME caches, which usually fixes it on its own.
+
+If entries still do not appear, your desktop may be caching aggressively. Logging out and back in forces a rescan.
+
+## Inside a Distrobox container
+
+If TuxBlox is installed inside a Distrobox container, it also exports its entries to the host system so they appear in the host's applications menu rather than being trapped inside the container.
+
+TuxBlox checks on startup whether the container has access to your graphics card and warns you if it does not. See [Common Problems](../troubleshooting/common-problems.md#distrobox-gpu-passthrough-warning) for what to do about that.
+
+## Discord
+
+Roblox appearing on your Discord profile is integration of a different kind: it is a setting rather than something installed, and it is off until you turn it on. [Enable Discord Rich Presence](settings/environment.md#enable-discord-rich-presence) covers what it shows, what that reveals to anyone who can see your profile, and the two switches underneath it.

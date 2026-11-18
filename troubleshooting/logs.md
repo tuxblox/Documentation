@@ -1,0 +1,143 @@
+# Logs and Diagnostics
+
+When something breaks, the log is the first thing anyone will ask you for.
+
+## Where logs live
+
+`~/.tuxblox/logs/`
+
+One file per session. The name is not random, it tells you which app ran and exactly when:
+
+```
+Studio-20260912T143107Z-8814.log
+│      │                └─ the process id that ran the session
+│      └─ when it started, in UTC
+└─ Studio or Player
+```
+
+The time is UTC rather than your local clock, so a log filename means the same thing to everyone reading it. `20260912T143107Z` is 12 September 2026, 14:31:07 UTC.
+
+The process id on the end is only there to keep two sessions started in the same second apart. You can ignore it.
+
+The newest file is the run you just did:
+
+```bash
+ls -t ~/.tuxblox/logs | head -1
+```
+
+<details>
+<summary>Older builds used a different name</summary>
+
+Before this scheme, the app name carried a `Roblox` prefix and the timestamp was in your **local** timezone:
+
+```
+RobloxStudio-20260912-143022-8814.log
+```
+
+Those files are still readable, they just need you to know which timezone the machine was in.
+
+</details>
+
+## What is in one
+
+Each log starts with a header giving your TuxBlox version, how it was started, the exact command, and your kernel and system information. That header alone answers most of the first questions in a bug report.
+
+After the header comes whatever the compatibility layer had to say during the session. TuxBlox writes its own lines the way Roblox writes its, with the same time, elapsed seconds, thread and category, so the whole file reads as one sequence of events rather than two. One of those lines names each log file Roblox creates, at the moment it creates it:
+
+```
+2026-09-12T14:31:07.482Z,1.482913,2e78,6,Info TuxBlox: created logfile: C:\users\you\AppData\Local\Roblox\logs\0.680.0.6800446_20260912T143107Z_Studio_A1B2C.log
+```
+
+That line is how TuxBlox knows which of Roblox's logs belongs to this session, rather than to another window open beside it.
+
+Lines from the pieces TuxBlox bundles rather than writes itself, such as the graphics layers, carry no stamp of their own and are shown as part of the line above them.
+
+At the end, those same logs are appended as they are, one after another.
+
+Roblox's names follow their own pattern, which is worth being able to read:
+
+```
+0.680.0.6800446_20260912T143107Z_Studio_A1B2C.log
+│               │                │      └─ random, so two logs never collide
+│               │                └─ Studio or Player
+│               └─ when it started, in UTC
+└─ the Roblox version
+```
+
+So one file has both halves: what TuxBlox saw and what Roblox saw, from the same session, in order.
+
+## Reading one
+
+You do not need to understand all of it. Useful things to look for:
+
+| Look for | Usually means |
+|---|---|
+| `err:` | Something the layer considers wrong |
+| `Exception` | A crash, often with the reason on the same line |
+| `Vulkan` or `vulkan` | Graphics driver trouble |
+| `wine: failed to open` | Something tried to run a program that is not there |
+
+The last twenty or so lines before the log stops are almost always the interesting part.
+
+```bash
+tail -50 "$(ls -t ~/.tuxblox/logs/* | head -1)"
+```
+
+## Turning on detailed logging
+
+Logging is deliberately quiet by default, because it costs real frame time. To get more, set `TUXBLOX_LOG=1` in **Environment variables** in Settings, then reproduce the problem.
+
+For even more, you can name Wine debug channels, for example `TUXBLOX_LOG=+seh,+loaddll`.
+
+> [!WARNING]
+> Turn it off again when you are done. Verbose channels slow Roblox down badly. `+relay` in particular will make the session unusable.
+
+A log will not grow past 64 MB. Once it reaches that, TuxBlox takes the middle out and keeps both ends, leaving a line in the file saying how much it removed — the start and the end are the parts that answer a bug report, and a log too big to open answers nothing. [`TUXBLOX_LOG_LIMIT`](../advanced/environment-variables.md#tuxblox_log_limit) changes the size, or turns the limit off.
+
+## Before you share a log
+
+Logs are written for debugging, not for publishing. Before attaching one:
+
+- Your Linux username appears in file paths throughout. Fine for most people, worth knowing about.
+- Place and experience names you opened appear in Roblox's half of the log.
+- A log written before 3.5.0.1 can also hold the contents of the messages Roblox's web panels exchanged, the sign-in screen's among them. Newer logs record only that a message happened, not what it said.
+
+> [!CAUTION]
+> Never share your virtual drive, `~/.tuxblox/runtime/`. It can contain your Roblox session cookies, which is equivalent to handing over your account. The log file is safe. The drive is not.
+
+## Crash reports
+
+When Roblox exits badly and **Always send crash reports** is on, TuxBlox sends a report containing the exit code, your Roblox and TuxBlox versions, basic system information, and the session log.
+
+That is the whole list. The setting is off unless you turn it on, and even then a report is sent only on a bad exit, never during normal use. With the setting off, the crash window offers a **Report** button, and a report is sent only if you press it. The full policy is at [tuxblox.net/privacy](https://tuxblox.net/privacy).
+
+With the setting on, the crash window offers **Copy** instead, which puts that session's whole log on the clipboard so you can paste it into a bug report. Read [Before you share a log](#before-you-share-a-log) first. A desktop that keeps no clipboard of its own can lose the copy when the window closes; if a paste comes out empty, the file is still in `~/.tuxblox/logs`.
+
+A crash report is not a bug report. Nobody is reading them one by one and following up. If you want your problem looked at, [report it](reporting-bugs.md).
+
+## Useful system information
+
+When reporting a bug, these four commands cover nearly everything anyone will ask:
+
+```bash
+uname -r                                  # kernel
+cat /etc/os-release | head -2             # distribution
+lspci -k | grep -A3 -i vga                # graphics card and driver
+~/.tuxblox/compat/main --version          # TuxBlox version
+```
+
+Also worth mentioning: your desktop environment, and whether you are on Wayland or X11.
+
+```bash
+echo "$XDG_CURRENT_DESKTOP $XDG_SESSION_TYPE"
+```
+
+## Clearing old logs
+
+Logs are never deleted automatically. If the folder has grown:
+
+```bash
+rm ~/.tuxblox/logs/*.log
+```
+
+Nothing depends on old logs, so this is safe.

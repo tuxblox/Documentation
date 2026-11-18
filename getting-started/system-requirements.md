@@ -1,0 +1,103 @@
+# System Requirements
+
+Most computers built in the last ten years will run TuxBlox. Here is the short version, followed by the details.
+
+## Hardware
+
+| | Minimum | Comfortable |
+|---|---|---|
+| **Processor** | x86-64 with SSE3 or newer | |
+| **Memory** | 4 GB of RAM | 8 GB |
+| **Storage** | 4 GB free | 6 GB |
+| **Graphics** | Anything with a working Vulkan driver | |
+
+The minimum is what TuxBlox needs to install and start Studio on a small place. The second column is what a real project wants: Studio's own appetite grows with the place you have open, and the figure that matters is how much is left after your desktop has taken its share.
+
+Storage works the same way. 4 GB covers TuxBlox and one build of Studio. 6 GB leaves room to keep a second build around, which is what the [Versions](../using-tuxblox/versions.md) tab is for, and for Roblox to update itself without you clearing space first.
+
+ARM processors (including Raspberry Pi and Apple Silicon under Asahi Linux) are not supported today. ARM64 is planned, but it is not in a release and there is no date.
+
+## Software
+
+| | Minimum |
+|---|---|
+| **Kernel** | Linux 6.7 or newer (6.14 recommended) |
+| **C library** | glibc 2.31 or newer |
+| **NVIDIA drivers** | Proprietary driver 418.49.04 or newer |
+| **AMD and Intel drivers** | Mesa 17.0 or newer |
+
+If you are not sure what any of that means, the distribution list below is an easier way to check.
+
+That list is the whole of it. TuxBlox brings its own copies of the supporting pieces it needs for downloading, unpacking, checking signatures and drawing its windows, so there is nothing to install first beyond your graphics driver. It is also why TuxBlox starts on a distribution that happens to ship a different version of one of those pieces, where older releases could stop before they were able to explain why.
+
+Roblox will not start correctly below Linux 6.7: TuxBlox needs a way to ask the kernel which pages of memory a program has written to, and older kernels make it work that out the slow way instead, which Roblox's own protection notices and stops for.
+
+Linux 6.14 is not required, but it is worth having. It is the first kernel that can handle Windows' way of making threads wait for each other directly, which is a large speed difference in Roblox. Without it TuxBlox uses the next best method available, and everything still works.
+
+## Distributions
+
+These are known to meet the requirements as long as they are reasonably up to date:
+
+- Ubuntu 20.04 or newer
+- Debian 11 or newer
+- Fedora 32 or newer
+- Arch Linux, Manjaro, EndeavourOS
+- Linux Mint, Pop!\_OS
+- openSUSE Tumbleweed
+
+Other distributions will very likely work too. The list is not exhaustive, it is just the set we hear about most often.
+
+> [!NOTE]
+> The kernel requirement is the one that trips people up most. Long term support distributions sometimes ship an older kernel than their release date suggests. Check yours with `uname -r`.
+
+## What will not work
+
+### musl based distributions
+
+TuxBlox needs glibc. Distributions built on musl instead cannot run it at all, and this is not something a workaround can fix.
+
+That rules out:
+
+- **Alpine Linux**
+- **Void Linux**, musl edition only. The glibc edition of Void is fine.
+
+### Windows Subsystem for Linux
+
+WSL is not supported. It does not provide the graphics and kernel features TuxBlox depends on.
+
+### Virtual machines
+
+Running TuxBlox inside a VM is not supported. Graphics passthrough inside a VM is fragile enough that we cannot help debug it, and Roblox's anti-tamper is unlikely to be happy about it either.
+
+### Containers
+
+Running inside a container such as Distrobox works, but only if the container was created with access to your graphics card. TuxBlox detects this case and warns you on startup if the passthrough is missing. See [Common Problems](../troubleshooting/common-problems.md) for the fix.
+
+## TuxBlox checks this itself
+
+TuxBlox checks your computer before it starts, and if it cannot run it says so and stops rather than failing later in a way that is harder to understand. The same check happens however you start it, including from a `roblox:` link or by double clicking a place file.
+
+It refuses only on what it can actually measure:
+
+| Checked | Refuses when |
+|---|---|
+| Kernel | Older than 6.7 |
+| NVIDIA drivers | Older than 418.49.04 |
+| Vulkan | No Vulkan driver is installed at all |
+
+Everything else on this page is a requirement but not something TuxBlox can read reliably, so it is never a reason to stop. Mesa does not publish its version anywhere TuxBlox can check without extra tools installed, and the amount of memory or free disk you have does not reliably say whether Roblox will run. TuxBlox would rather start on a machine it cannot fully measure than refuse one that would have worked.
+
+The NVIDIA check only applies if you have NVIDIA's driver. An AMD or Intel machine is not held to it.
+
+If you have reason to think the check is wrong about your machine, `tbxFlagBypassSystemRequirements` makes TuxBlox start anyway. It is a [flag](../advanced/tuxblox-flags/launcher.md) you set on your own machine, we cannot set it for you, and it changes nothing except that one decision: a computer that genuinely cannot run Roblox still will not run it.
+
+## Checking what you have
+
+Run these in a terminal if you want to confirm before installing:
+
+```bash
+uname -r                      # kernel version
+ldd --version | head -1       # glibc version
+lspci -k | grep -A3 -i vga    # graphics card and driver in use
+vulkaninfo --summary | head   # Vulkan support, if vulkan-tools is installed
+```

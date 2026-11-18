@@ -1,0 +1,253 @@
+# Files and Folders
+
+Everything TuxBlox installs lives in one folder. By default that is `~/.tuxblox`. The only exceptions are the desktop entry and icon files, which have to go in standard XDG locations for your desktop to find them.
+
+The folder does not have to be there. Each part of TuxBlox looks for the others next to itself, so you can move the whole folder somewhere else, or install it somewhere else to begin with, and it keeps working. See [installing TuxBlox](../getting-started/installing-tuxblox.md) for how to choose the place.
+
+Nothing is installed system wide, and nothing needs root. TuxBlox will in fact refuse to start as root unless you tell it to, because a virtual drive built by root is one your normal account cannot write to afterwards.
+
+## The TuxBlox folder
+
+```
+~/.tuxblox/
+├── TuxBloxLauncher        the launcher you use
+├── TuxBloxInstaller       kept around for updates and uninstalling
+├── studio-mcp             the Studio MCP helper
+├── settings.json          your settings and FastFlags
+├── versions.json          which Roblox builds are installed
+├── launcher.lock          stops two launchers running at once
+├── COPYRIGHT.txt          notices for everything bundled
+├── LICENSE                the GPLv3 text
+├── compat/                the compatibility layer
+├── libtuxblox/            libraries the launcher and the update window need
+├── logs/                  session logs
+├── roblox/                the Roblox builds you have installed
+├── runtime/               the virtual drive
+├── RobloxPlayer/          Roblox's own downloaded installer
+└── RobloxStudio/          the same, for Studio
+```
+
+### settings.json
+
+Everything from the Settings tab, plus your FastFlags.
+
+```json
+{
+  "channel": "stable",
+  "auto_update": false,
+  "env_vars": "",
+  "gpu": "",
+  "haptics": true,
+  "webview_gpu": true,
+  "send_crash_reports": true,
+  "fast_flags": {
+    "player": [],
+    "studio": []
+  }
+}
+```
+
+You can edit it by hand. TuxBlox rewrites the file whenever you change something in the launcher, so do not have both going at once.
+
+If the file is missing or damaged, TuxBlox falls back to defaults rather than refusing to start. A broken settings file costs you your settings, never your install.
+
+### versions.json
+
+Bookkeeping for the Versions tab: which Roblox builds are installed, which one is active, and when each arrived.
+
+TuxBlox does not trust this file on its own. It checks the virtual drive and corrects the file against what is actually there, so deleting it is harmless.
+
+### compat/
+
+The compatibility layer.
+
+| | |
+|---|---|
+| `main` | The entry point. Run `main --version` to see which build is installed. |
+| `files/` | Wine, DXVK, the bundled browser component, fonts, libraries |
+| `LICENSE`, `third_party_licenses/` | LGPLv2.1 and everything else bundled |
+
+This folder is replaced wholesale by updates. Anything you put in it goes away.
+
+### libtuxblox/
+
+Interface libraries the launcher and the window TuxBlox shows while it updates Roblox need, so they look and behave the same regardless of what your distribution ships.
+
+It has to stay next to `TuxBloxLauncher`. If it goes missing, the launcher uses your system's own libraries when it has them and cannot start without them. Reinstalling TuxBlox puts the folder back.
+
+It also holds `version.so`, which is there to be asked rather than run: it is how this folder says which release it belongs to, its own version, and the channel that release went to. Every other part of TuxBlox is a program that can be asked the same questions directly, and this folder is libraries, so it carries one small library for the purpose.
+
+### logs/
+
+One file per Roblox session, named after the app, the start time in UTC, and the process id:
+
+```
+Studio-20260912T143107Z-8814.log
+```
+
+Roblox's own logs from the same session are appended to the end of the file, so one log has both halves of the story. Once they are in, TuxBlox removes the copy Roblox left in the virtual drive, so a session leaves one log in one place and there is never a second file to wonder about. Roblox's crash reports in the virtual drive are left alone. See [Logs and Diagnostics](../troubleshooting/logs.md).
+
+Installing a TuxBlox update empties this folder, since by then every log in it describes a version you are no longer running. Nothing else removes them, so clear them out yourself if the folder gets large between updates.
+
+### roblox/
+
+Everything Roblox keeps for itself: the builds you have installed, its own settings, and its logs. Inside the virtual drive this is `C:\users\<your account>\AppData\Local\Roblox`, which is where Roblox looks for it and the only place Roblox ever sees it.
+
+It sits here, outside the drive, so that rebuilding the drive does not take a few gigabytes of installed Roblox with it. Older installs kept it the other way around, with the folder inside the drive and a shortcut here pointing in; the first launch after this arrives moves it out, and nothing you have installed is lost.
+
+Nothing you have made lives here, so deleting it loses nothing — but the next launch downloads and installs Roblox again, which takes about as long as your first launch did.
+
+#### Keeping it where your desktop keeps things
+
+Roblox puts everything in one folder because that is how Windows programs do it. Linux desktops split the same thing three ways, and TuxBlox can follow that instead. It is off by default and experimental, so turn it on only if you want it:
+
+```json
+{
+    "tbxFlagEnableExperimentalLinuxIntegration": true
+}
+```
+
+in `~/.tuxblox/flags.json` — see [a feature behaving differently from someone else's TuxBlox](../troubleshooting/common-problems.md) for what that file is. With it on, the next launch moves everything into these:
+
+| What | Where it goes |
+| --- | --- |
+| Roblox's logs, and which scripts you had open in each place | `$XDG_STATE_HOME/roblox`, normally `~/.local/state/roblox` |
+| Downloaded plugins, update backups, capture scratch files, the default place templates | `$XDG_CACHE_HOME/roblox`, normally `~/.cache/roblox` |
+| Everything else, the installed Roblox builds among it | `$XDG_DATA_HOME/roblox`, normally `~/.local/share/roblox` |
+
+`~/.tuxblox/roblox` goes away while this is on, since the data is no longer there — everything that needs it follows the folder inside the virtual drive, which is where Roblox looks for it too. Roblox is told none of this: inside the drive it still sees one ordinary folder at `C:\users\<your account>\AppData\Local\Roblox`, with those folders inside it.
+
+Turning it off again moves everything back on the next launch and `~/.tuxblox/roblox` returns. Nothing is lost in either direction, and if a folder cannot be moved it is left where it is and TuxBlox says so in the log.
+
+> [!NOTE]
+> Uninstalling TuxBlox does not remove these three folders while this is on, because they are outside the TuxBlox folder. Delete them yourself if you want them gone.
+
+---
+
+## The virtual drive
+
+`~/.tuxblox/runtime/` is the virtual drive, the Windows shaped world Roblox lives in.
+
+```
+runtime/
+├── pfx/
+│   ├── drive_c/        the C: drive
+│   ├── dosdevices/     drive letter mappings
+│   ├── system.reg      the registry
+│   ├── user.reg
+│   └── userdef.reg
+├── version             which TuxBlox built this drive
+├── config_info         what it was built with
+└── tracked_files       which files TuxBlox owns, as opposed to Roblox
+```
+
+Roblox's own data, the builds you have installed among it, is reached at `pfx/drive_c/users/<your account>/AppData/Local/Roblox` inside the drive and kept in [`roblox/`](#roblox) outside it, so it survives the drive being rebuilt.
+
+The account folder inside the drive is named after your own account, so it is `cherry` for a user called cherry, the same way Windows names it. Drives built by TuxBlox 2.7.4 and earlier used a folder called `user` instead; those are renamed the first time you launch 2.8.0, and everything inside them, including your installed Roblox and your login, comes along.
+
+`tracked_files` is how an update can replace TuxBlox's own files without touching anything Roblox or you put in the drive.
+
+> [!WARNING]
+> Do not share your virtual drive, and do not put it in a bug report. It can contain your Roblox session cookies, which is the same as handing over your account. Send the log file instead.
+
+### Your everyday folders are shared
+
+Six folders inside the drive point straight at the matching ones in your home folder, so Roblox opens and saves in them directly:
+
+| In the drive | On your computer |
+| --- | --- |
+| `C:\users\<your account>\Desktop` | `~/Desktop` |
+| `C:\users\<your account>\Documents` | `~/Documents` |
+| `C:\users\<your account>\Downloads` | `~/Downloads` |
+| `C:\users\<your account>\Music` | `~/Music` |
+| `C:\users\<your account>\Pictures` | `~/Pictures` |
+| `C:\users\<your account>\Videos` | `~/Videos` |
+
+If your desktop uses translated folder names, those are followed — TuxBlox reads the names your desktop recorded rather than assuming the English ones. A folder you do not have is simply not shared, and TuxBlox never creates one.
+
+Folders inside the shared six are shared with them, however deep. Saving to `~/Downloads/Projects/Maps/town.rbxm` puts the file there, and Roblox records it as `C:\users\<your account>\Downloads\Projects\Maps\town.rbxm`, so reopening it from Roblox's own list of recent files works.
+
+A window for choosing a file opens on the real folder too. When Roblox asks for one of these, or for Roblox's own folder, the window opens on your own Documents, your own Downloads and so on, named the way you know them rather than as a path inside the virtual drive. When Roblox asks for a folder that really is inside the drive — `C:\`, `C:\windows`, `C:\users` or your account folder itself — the window opens on your home folder instead, since there is nothing in those worth picking.
+
+The first time you launch after this arrived, anything already sitting in those folders inside the drive is moved out to the matching folder in your home, so a place file you saved in the drive's Documents turns up in your real Documents. Nothing is ever written over: if a name is already taken in your home folder, that folder keeps its own copy inside the drive instead and TuxBlox says so in the log.
+
+> [!NOTE]
+> This means Roblox can read and write anything in those six folders, the same as any other program you run. The rest of your home folder stays outside the drive.
+
+### There is no Z: drive
+
+On most Wine setups, `Z:` maps your entire Linux filesystem into the Windows world. TuxBlox removes it, because a `Z:` drive is one of the most reliable ways to detect that a program is running under Wine, and Roblox lives entirely under `C:` anyway.
+
+The practical effect: a Windows program run inside the drive sees your six everyday folders and nothing else of your home folder. Anything outside them is brought in one piece at a time rather than everything being exposed: double clicking a `.rbxl` file, dragging a file onto Studio's window, and picking one through a file browser each bring in just the file you chose.
+
+Files brought in that way show up in the drive under `C:\users\<your account>\files`. They point at the real file rather than being copies of it, so what Studio opens is the file itself, wherever it actually lives. Choosing somewhere to **save** brings in the folder you picked rather than a single file, because a program writes a save by creating a second file beside the first and renaming it into place.
+
+### Colours
+
+TuxBlox matches the drive to your desktop's light or dark setting the first time it sets the drive up, and then leaves the colours alone. Anything you change yourself under `Control Panel\Colors` in the drive's registry stays changed, and is never written over on a later launch.
+
+The other side of that is that switching your desktop between light and dark afterwards does not follow through to the drive. Wiping the drive and letting it rebuild picks up your current setting again.
+
+### Classic message boxes
+
+The small dialogs Windows programs put up inside the virtual drive are drawn to match a modern desktop: roomy margins, a right aligned row of rounded buttons, and the button you would press with Enter outlined in your desktop's accent colour. The colours come from your own theme, so they follow it in light and dark.
+
+If you would rather have the plain, older looking dialog, set a value in the drive's registry:
+
+```
+HKEY_CURRENT_USER\Software\TuxBlox\MessageBox
+    Classic = "1"
+```
+
+Anything else, or no value at all, gives the modern one. The change applies to the next dialog that opens, with nothing to restart.
+
+The one TuxBlox draws itself is the message Roblox puts up when it stops unexpectedly. That one keeps the modern look whatever this setting says, and it follows your colours and font the same way.
+
+The text in those dialogs uses your desktop's own font, at your desktop's size. TuxBlox reads it at every launch, so changing your font settings is enough -- there is nothing to set here. If it cannot work out what you use, it leaves the drive's own font alone.
+
+### Text smoothing
+
+How sharp text looks inside the virtual drive -- Studio's menus and panels most of all -- depends on what the drive tells programs about your screen. TuxBlox reads your desktop's own text smoothing setting at every launch and passes it through, so text is drawn the way Windows would draw it on the same screen. A desktop that says your screen has no colour stripe order, or one Windows has no way to describe, gets plain smoothing instead, which is the right choice there. There is nothing to set here -- change it on your desktop and start Roblox again.
+
+### Resetting it
+
+**Wipe** in Settings, under Danger zone, deletes the whole thing. The next launch rebuilds it, which takes about as long as your first launch did apart from downloading Roblox.
+
+Your settings and FastFlags live outside the drive and survive, and so do the Roblox builds you have installed, because those are kept in [`roblox/`](#roblox) rather than in the drive.
+
+---
+
+## Outside the TuxBlox folder
+
+| Path | What is there |
+|---|---|
+| `~/.local/share/applications/` | Desktop entries for TuxBlox, Roblox Studio, Roblox Player, and the link handlers |
+| `~/.local/share/icons/hicolor/` | Icons for those entries |
+| `~/.local/share/mime/packages/` | The place and model file type definitions |
+| `~/.cache/tuxblox/` | The installer's interface, see below |
+| `/tmp/tuxblox-<your user id>/` | Scratch files programs in the drive write while they run |
+
+That is the complete list. Uninstalling removes all of it, apart from the scratch folder, which your computer clears out on its own.
+
+### The cache folder
+
+`~/.cache/tuxblox` holds the installer's interface. The installer carries it inside its own file and unpacks it here the first time its window opens, so later runs start without unpacking it again.
+
+It is safe to delete. The installer unpacks it again the next time its window opens, and nothing you have made lives there. Uninstalling TuxBlox removes it.
+
+### Scratch files
+
+Windows programs write their working files into `AppData\Local\Temp` inside the drive, and nothing in Windows ever clears that out. TuxBlox points it at a folder of its own under your computer's temporary directory instead, one per drive, so your computer empties it on the same schedule as everything else there.
+
+The folder is named after your user, and TuxBlox refuses to use one it does not own, so two accounts on the same computer cannot write through each other's. If your computer has no temporary directory at all, the drive keeps its own folder and nothing changes.
+
+---
+
+## Backing things up
+
+| Worth keeping | Path |
+|---|---|
+| Your settings and FastFlags | `~/.tuxblox/settings.json` |
+| Anything you saved inside the drive | `~/.tuxblox/runtime/pfx/drive_c/users/<your account>/` |
+
+Everything else can be downloaded again. There is no point backing up `compat/` or an installed Roblox build.

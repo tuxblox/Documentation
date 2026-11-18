@@ -1,0 +1,218 @@
+# Environment Variables
+
+TuxBlox can be steered with environment variables. The launcher sets the important ones for you, and the **Environment variables** box in [Settings](../using-tuxblox/settings/environment.md#environment-variables) is where you add your own.
+
+You do not need anything on this page for TuxBlox to work. Reach for it when you are debugging, benchmarking, or working around a driver.
+
+## How to set them
+
+**Through the launcher**, which is the way that persists. Settings, then Environment variables, as a space separated list:
+
+```
+DXVK_HUD=fps TUXBLOX_LOG=1
+```
+
+Variables you set here are applied last, so they override anything TuxBlox chose for you, including the graphics card picker.
+
+**For a single run from a terminal**, if you are calling the layer yourself:
+
+```bash
+TUXBLOX_LOG=1 ~/.tuxblox/TuxBloxLauncher --launch-studio
+```
+
+---
+
+## TuxBlox variables
+
+### TUXBLOX_ROOT
+
+The TuxBlox folder to use, for one run. Must be an absolute path; a relative one is ignored with a warning.
+
+You will not normally need this. Each part of TuxBlox already looks for the others next to itself, so an install at `/opt/tuxblox` or anywhere else works on its own. This is for pointing a launcher at a different install than the one sitting beside it, which is mostly useful when you keep more than one.
+
+```bash
+TUXBLOX_ROOT=/opt/tuxblox /opt/tuxblox/TuxBloxLauncher
+```
+
+### TUXBLOX_PREFIX
+
+Path to the virtual drive. The launcher sets this to `runtime` inside the TuxBlox folder, so `~/.tuxblox/runtime` for a default install.
+
+Only needs setting by hand if you are running `compat/main` directly. It is the one variable the layer cannot work without.
+
+### TUXBLOX_LOG
+
+Turns on logging. Off by default, because logging costs real frame time.
+
+| Value | Effect |
+|---|---|
+| `-1` | Silence: nothing at all is printed |
+| unset or `0` | No logging |
+| `1` | A useful default set of channels |
+| anything else | That value is added to the default set |
+
+The advanced form takes Wine debug channel syntax, so `TUXBLOX_LOG=+seh,+relay` adds those channels on top of the defaults.
+
+Turning this on also raises the graphics layers' own logging to a level that reports warnings.
+
+`-1` goes the other way and turns everything off, including the handful of lines the layer normally prints and the graphics layers' error reporting. It is for programs whose output is being read by something else rather than by a person: [Studio MCP](../using-tuxblox/studio-mcp.md) sets it, because a single unexpected line there breaks the connection to the AI client. There is no reason to set it by hand, and a crash under it leaves nothing to look at.
+
+### TUXBLOX_LOG_DIR
+
+Where `tuxblox.log` is written. The launcher sets it to `logs` inside the TuxBlox folder, so `~/.tuxblox/logs` for a default install. Defaults to your home folder if unset.
+
+### TUXBLOX_LOG_LIMIT
+
+The largest a session log is allowed to get, in megabytes. Defaults to `64`.
+
+With logging turned up, a log can grow by megabytes a second, and a long session used to be able to produce one far too big to open or send. When a log passes this size, TuxBlox takes the middle out of it and keeps both ends — the start says what was launched and how, the end says what went wrong — and marks the gap in the file where the removed part was.
+
+Set it to `0` to keep everything and let the log grow without limit.
+
+### TUXBLOX_HAPTICS
+
+Set to `0` to turn off controller vibration. Anything else, including leaving it unset, leaves it on.
+
+This is what the **Enable Haptics** setting writes.
+
+### TUXBLOX_WEBVIEW_GPU
+
+`1` or `0`, for GPU acceleration in the panels that are web pages. This is what the **GPU acceleration for web pages** setting writes.
+
+Unlike haptics, both values are sent explicitly, because the layer's own default differs from the launcher's.
+
+### TUXBLOX_VIRTUAL_DESKTOP
+
+Set to `1` to run Roblox inside a single window of its own instead of letting it place windows on your desktop. This is what the **Virtual Desktop Mode** setting writes.
+
+Only the non-default is sent, so a launch that never touched it carries nothing extra. The [setting](../using-tuxblox/settings/environment.md#virtual-desktop-mode) is the friendlier route, and explains when the mode is worth trying.
+
+### TUXBLOX_DEBUG
+
+Set to `1` for detailed logging, which is what the **Detailed logging** setting writes.
+
+The extra detail goes into the session log TuxBlox already writes for every launch rather than a file of its own, so reporting a problem still means sending one file. See the [setting](../using-tuxblox/settings/troubleshooting.md#detailed-logging) for what it costs in speed and log size.
+
+`TUXBLOX_LOG` above is the superset, so setting both does nothing extra — when `TUXBLOX_LOG` is on, this one is ignored. The difference between them is where the output lands, not how much of it there is: `TUXBLOX_LOG` can open a log file of its own, while this keeps everything in the session log the launcher already writes. That is the file you send with a report, which is why the setting uses this one.
+
+### TUXBLOX_USE_MSWEBVIEW
+
+Set to `1` to make TuxBlox stand aside, so a copy of Microsoft's own browser runtime installed in the virtual drive is used for web pages instead of the one TuxBlox provides.
+
+This is a diagnostic setting, not a better option. Microsoft's runtime installs under TuxBlox but does not currently run — its browser processes stop as soon as they start. The setting exists so that can be investigated, and so it is ready if that ever changes.
+
+With it unset, TuxBlox provides the browser view itself, and puts its own runtime in the virtual drive where a program that goes looking for Microsoft's will find it. Turning this on takes that runtime back out, and turning it off again puts it back.
+
+```bash
+TUXBLOX_USE_MSWEBVIEW=1 ~/.tuxblox/TuxBloxLauncher
+```
+
+### TUXBLOX_WEBVIEW_IPC_TIMEOUT
+
+How many seconds Roblox waits for an answer from the helper that draws the panels which are web pages, such as Studio's Toolbox. The default is `45`.
+
+Roblox asks that helper a question and waits for the reply before it carries on, so a helper that stops answering stops Roblox with it. Once the wait runs out, TuxBlox empties the panel and starts a fresh helper, which leaves Roblox running instead of frozen.
+
+The default is set well above the longest job the helper does on its own, so reaching it means the helper really has stopped rather than that it is still busy. Lower it only to reproduce that recovery on purpose; `0` brings back the old behaviour of waiting for ever, which is useful when debugging the helper itself and nothing else.
+
+```bash
+TUXBLOX_WEBVIEW_IPC_TIMEOUT=10 ~/.tuxblox/TuxBloxLauncher
+```
+
+### TUXBLOX_NO_FSYNC
+
+Set to `1` to drop down a rung on the thread synchronisation ladder.
+
+TuxBlox picks the best mechanism your kernel offers, preferring `ntsync`, then `fsync`, then falling back to the compatibility layer's own server. This variable forces it off the faster paths.
+
+Only useful for diagnosing a hang. It will not make anything faster.
+
+### TUXBLOX_USE_WINED3D
+
+Set to `1` to render Direct3D through WineD3D, which translates to OpenGL, instead of DXVK, which translates to Vulkan.
+
+DXVK is the default and is faster nearly everywhere. WineD3D is worth trying only on hardware with no usable Vulkan driver.
+
+### TUXBLOX_NO_D3D11
+
+Set to `1` to disable Direct3D 11 entirely, pushing Roblox onto an older rendering path.
+
+A diagnostic, not a tuning knob.
+
+### TUXBLOX_DISABLE_NVAPI
+
+Set to `1` to turn off NVIDIA's NVAPI support inside the layer. Only relevant on NVIDIA hardware, and only worth trying if something NVIDIA specific is misbehaving.
+
+### TUXBLOX_DLL_COPY
+
+Overrides which libraries get copied into the virtual drive rather than linked. Internal, and changing it will probably break your install. Listed for completeness.
+
+### TUXBLOX_WM_SYNC
+
+Set to `1` to let your desktop hold a window's new size back until Roblox has redrawn at it, while you drag the window's edge.
+
+Off by default, and normally best left that way. The idea is to stop a strip along the edge of a growing window being shown before anything has been drawn in it. In practice Roblox draws its main window itself rather than through TuxBlox, so it never reports having finished, and the desktop waits for a signal that does not come — which makes dragging the edge stall, sometimes for several seconds at a time.
+
+Desktops that ignore this are unaffected either way.
+
+---
+
+## Graphics variables
+
+These are not TuxBlox's, they belong to the graphics stack underneath. They work because TuxBlox passes your environment straight through.
+
+### Picking a card
+
+The **Preferred graphics card** setting writes these for you. Set them yourself only if the picker gets your machine wrong.
+
+**NVIDIA:**
+
+```
+__NV_PRIME_RENDER_OFFLOAD=1 __VK_LAYER_NV_optimus=NVIDIA_only __GLX_VENDOR_LIBRARY_NAME=nvidia
+```
+
+**AMD and Intel:**
+
+```
+DRI_PRIME=pci-0000_03_00_0 MESA_VK_DEVICE_SELECT=1002:744c
+```
+
+### Overlays and measurement
+
+| Variable | What it does |
+|---|---|
+| `DXVK_HUD=fps` | DXVK's own framerate overlay |
+| `DXVK_HUD=full` | Everything DXVK can report |
+| `MANGOHUD=1` | MangoHud overlay, if you have it installed |
+
+> [!NOTE]
+> Roblox renders through Vulkan directly rather than through Direct3D, so DXVK's overlay may show nothing during actual gameplay. It is still useful for Studio's interface and for the launcher's own panels.
+
+### Wine variables
+
+The compatibility layer is Wine underneath, so Wine's variables work, `WINEDEBUG` included. TuxBlox sets sensible values for the ones that matter and will not overwrite one you set yourself.
+
+The one exception is the `rbxlogfile` channel, which TuxBlox adds to whatever `WINEDEBUG` already says. It prints one line for each log file Roblox creates, which is how the launcher tells which log belongs to which window. Put `-rbxlogfile` in your own `WINEDEBUG` to turn it off.
+
+Be careful with `WINEDEBUG`. Verbose channels can slow Roblox to a crawl and produce gigabytes of log.
+
+---
+
+## Variables TuxBlox sets for itself
+
+You will see these in logs. They are set by the layer at startup and are not meant to be set by hand.
+
+| Variable | Purpose |
+|---|---|
+| `TUXBLOX_WEBVIEW_DIR` | Where the bundled browser component lives |
+| `TUXBLOX_REAL_EXIT_CODE` | How Roblox's real exit code is reported back |
+| `TUXBLOX_WRAPPER_EXIT_CODE` | The layer's own exit code |
+| `TUXBLOX_VERSION`, `TUXBLOX_CHANNEL` | Baked in at build time |
+
+---
+
+## Variables that no longer exist
+
+TuxBlox used to use Proton's `PROTON_*` and Steam's `STEAM_COMPAT_*` names. They were renamed to `TUXBLOX_*` and the ones that only applied to Steam games were removed.
+
+If you are following an old guide, `STEAM_COMPAT_DATA_PATH` is now `TUXBLOX_PREFIX` and `PROTON_LOG` is now `TUXBLOX_LOG`.
